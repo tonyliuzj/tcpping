@@ -1,30 +1,35 @@
+// src/components/ProvinceSelect.tsx
+
 import React from "react";
 import { dictionary } from "../data/dictionary";
 
-interface Props {
-  value?: string;
-  onChange: (v: string) => void;
+interface ProvinceSelectProps {
+  country: string;
+  province?: string;
+  onChange: (province: string) => void;
 }
 
-export function ProvinceSelect({ value, onChange }: Props) {
+const ProvinceSelect: React.FC<ProvinceSelectProps> = ({
+  country,
+  province,
+  onChange,
+}) => {
+  if (country !== "CN") return null;
+
+  const provinces = dictionary.CN.provinces;
+
   return (
-    <div>
-      <label className="block mb-1 font-medium">Province/County *</label>
-      <select
-        className="w-full border rounded p-2"
-        value={value}
-        onChange={e => onChange(e.target.value)}
-        required
-      >
-        <option value="" disabled>
-          Select Province/County
+    <select value={province || ""} onChange={(e) => onChange(e.target.value)} required>
+      <option value="" disabled>
+        Select Province
+      </option>
+      {Object.entries(provinces).map(([code, name]) => (
+        <option key={code} value={code}>
+          {name}
         </option>
-        {Object.entries(dictionary.provinces).map(([code, name]) => (
-          <option key={code} value={code}>
-            {String(name)} ({String(code)})
-          </option>
-        ))}
-      </select>
-    </div>
+      ))}
+    </select>
   );
-}
+};
+
+export default ProvinceSelect;

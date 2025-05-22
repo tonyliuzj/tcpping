@@ -1,30 +1,43 @@
+// src/components/ProviderSelect.tsx
+
 import React from "react";
 import { dictionary } from "../data/dictionary";
 
-interface Props {
-  value?: string;
-  onChange: (v: string) => void;
+interface ProviderSelectProps {
+  country: string;
+  province?: string;
+  city?: string;
+  provider?: string;
+  onChange: (provider: string) => void;
 }
 
-export function ProviderSelect({ value, onChange }: Props) {
+const ProviderSelect: React.FC<ProviderSelectProps> = ({
+  country,
+  city,
+  provider,
+  onChange,
+}) => {
+  let providers: Record<string, string> = {};
+
+  if (country === "CN") {
+    providers = dictionary.CN.providers;
+  } else {
+    const cityObj = (dictionary[country] as any)?.cities?.[city || ""] || {};
+    providers = cityObj.providers || {};
+  }
+
   return (
-    <div>
-      <label className="block mb-1 font-medium">Provider *</label>
-      <select
-        className="w-full border rounded p-2"
-        value={value}
-        onChange={e => onChange(e.target.value)}
-        required
-      >
-        <option value="" disabled>
-          Select Provider
+    <select value={provider || ""} onChange={(e) => onChange(e.target.value)} required>
+      <option value="" disabled>
+        Select Provider
+      </option>
+      {Object.entries(providers).map(([code, name]) => (
+        <option key={code} value={code}>
+          {name}
         </option>
-        {Object.entries(dictionary.providers).map(([code, name]) => (
-          <option key={code} value={code}>
-            {String(name)} ({code})
-          </option>
-        ))}
-      </select>
-    </div>
+      ))}
+    </select>
   );
-}
+};
+
+export default ProviderSelect;

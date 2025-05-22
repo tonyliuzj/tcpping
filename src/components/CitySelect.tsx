@@ -1,32 +1,51 @@
+// src/components/CitySelect.tsx
+
 import React from "react";
 import { dictionary } from "../data/dictionary";
 
-interface Props {
+interface CitySelectProps {
+  country: string;
   province?: string;
-  value?: string;
-  onChange: (v: string) => void;
+  city?: string;
+  onChange: (city: string) => void;
 }
 
-export function CitySelect({ province, value, onChange }: Props) {
-  const cities = province ? dictionary.cities[province] || {} : {};
-  return (
-    <div>
-      <label className="block mb-1 font-medium">City (optional)</label>
-      <select
-        className="w-full border rounded p-2"
-        value={value}
-        onChange={e => onChange(e.target.value)}
-        disabled={!province}
-      >
-        <option value="">
-          Do Not Include City
-        </option>
+const CitySelect: React.FC<CitySelectProps> = ({
+  country,
+  province,
+  city,
+  onChange,
+}) => {
+  // China logic: show cities under selected province, optional select
+  if (country === "CN") {
+    if (!province) return null;
+    const cities = dictionary.CN.cities[province] || {};
+    return (
+      <select value={city || ""} onChange={(e) => onChange(e.target.value)}>
+        <option value="">(Optional) Select City</option>
         {Object.entries(cities).map(([code, name]) => (
           <option key={code} value={code}>
-            {String(name)} ({code})
+            {name}
           </option>
         ))}
       </select>
-    </div>
+    );
+  }
+
+  // Other country logic: cities are flat, city is required
+  const cities = (dictionary[country] as any)?.cities || {};
+  return (
+    <select value={city || ""} onChange={(e) => onChange(e.target.value)} required>
+      <option value="" disabled>
+        Select City
+      </option>
+      {Object.entries(cities).map(([code, value]) => (
+        <option key={code} value={code}>
+          {typeof value === "string" ? value : value.name}
+        </option>
+      ))}
+    </select>
   );
-}
+};
+
+export default CitySelect;
