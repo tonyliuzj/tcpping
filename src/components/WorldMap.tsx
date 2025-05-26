@@ -34,10 +34,12 @@ const markerIcon = new L.Icon({
 });
 
 export interface WorldMapProps {
-  mode: "default" | "country" | "lookup";
+  mode: "default" | "country" | "province" | "city" | "lookup";
   countryData?: { name: string; code: string; lat: number; lon: number };
   cities?: { name: string; lat: number; lon: number }[];
   ipLocations?: { ip: string; label?: string; lat: number; lon: number }[];
+  center?: [number, number];
+  zoom?: number;
 }
 
 const WorldMap: React.FC<WorldMapProps> = ({
@@ -45,68 +47,63 @@ const WorldMap: React.FC<WorldMapProps> = ({
   countryData,
   cities = [],
   ipLocations = [],
+  center,
+  zoom,
 }) => {
-  // ...rest of your code...
-  let center: [number, number] = [20, 0];
-  let zoom = 2;
   let markers: React.ReactNode[] = [];
-  let bounds: [[number, number], [number, number]] | undefined;
+  let bounds: [[number, number], [number, number]] | undefined = undefined;
 
-  if (mode === "country" && countryData) {
-    center = [countryData.lat, countryData.lon];
-    zoom = 4;
-    if (cities.length === 1) {
-      center = [cities[0].lat, cities[0].lon];
-      zoom = 7;
-    } else if (cities.length > 1) {
-      const lats = cities.map(c => c.lat);
-      const lons = cities.map(c => c.lon);
-      bounds = [
-        [Math.min(...lats), Math.min(...lons)],
-        [Math.max(...lats), Math.max(...lons)]
-      ];
-    }
+  // City/province/country markers (all use cities array)
+  if (mode === "country" || mode === "province" || mode === "city") {
     markers = cities.map((c, i) => (
       <Marker key={i} position={[c.lat, c.lon]} icon={markerIcon}>
         <Tooltip>{c.name}</Tooltip>
       </Marker>
     ));
-  } else if (mode === "lookup" && ipLocations.length) {
-    if (ipLocations.length === 1) {
-      center = [ipLocations[0].lat, ipLocations[0].lon];
-      zoom = 7;
-    } else if (ipLocations.length > 1) {
-      const lats = ipLocations.map(c => c.lat);
-      const lons = ipLocations.map(c => c.lon);
+    if (cities.length > 1) {
+      const lats = cities.map(c => c.lat);
+      const lons = cities.map(c => c.lon);
       bounds = [
         [Math.min(...lats), Math.min(...lons)],
-        [Math.max(...lats), Math.max(...lons)]
+        [Math.max(...lats), Math.max(...lons)],
       ];
     }
+  }
+
+  // IP lookup markers
+  if (mode === "lookup" && ipLocations.length) {
     markers = ipLocations.map((ip, i) => (
       <Marker key={ip.ip || i} position={[ip.lat, ip.lon]} icon={markerIcon}>
         <Tooltip>{ip.label || ip.ip}</Tooltip>
       </Marker>
     ));
-  } else {
-    markers = [];
-    zoom = 2;
-    center = [20, 0];
+    if (ipLocations.length > 1) {
+      const lats = ipLocations.map(c => c.lat);
+      const lons = ipLocations.map(c => c.lon);
+      bounds = [
+        [Math.min(...lats), Math.min(...lons)],
+        [Math.max(...lats), Math.max(...lons)],
+      ];
+    }
   }
+
+  // Use props or default for center/zoom
+  const mapCenter = center ?? [20, 0];
+  const mapZoom = zoom ?? 2;
 
   return (
     <MapContainer
-      center={center}
-      zoom={zoom}
+      center={mapCenter}
+      zoom={mapZoom}
       style={{ width: "100%", height: "500px", borderRadius: 16, minWidth: 320 }}
       scrollWheelZoom={true}
-      attributionControl={true}
+      attributionControl={false}
     >
       <TileLayer
         attribution="&copy; OpenStreetMap contributors"
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
-      <MapUpdater center={center} zoom={zoom} bounds={bounds} />
+      <MapUpdater center={mapCenter} zoom={mapZoom} bounds={bounds} />
       {markers}
     </MapContainer>
   );

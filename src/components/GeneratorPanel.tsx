@@ -31,18 +31,14 @@ const defaultState = {
   provider: "",
 };
 
-interface City {
-  name: string;
-  lat: number;
-  lon: number;
-}
 interface GeneratorPanelProps {
   setInputValue: (v: string) => void;
   setDomainStatus: (v: "unknown" | "valid" | "invalid") => void;
   setDomainChecking: (v: boolean) => void;
   setSelectedCountry?: (code: string) => void;
-  setSelectedCities?: (cities: City[]) => void;
-  dictionary?: any; // comes from parent (from /api/dictionary)
+  setSelectedProvince?: (code: string) => void;
+  setSelectedCity?: (code: string) => void;
+  dictionary?: any;
 }
 
 const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
@@ -50,7 +46,8 @@ const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
   setDomainStatus,
   setDomainChecking,
   setSelectedCountry,
-  setSelectedCities,
+  setSelectedProvince,
+  setSelectedCity,
   dictionary,
 }) => {
   const [protocol, setProtocol] = useState<string>(defaultState.protocol);
@@ -62,48 +59,25 @@ const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
 
   // Find provider object
   useEffect(() => {
-    let fetchProvider = async () => {
-      let data = dictionary;
-      if (!data) {
-        try {
-          const res = await fetch("/api/dictionary");
-          data = await res.json();
-        } catch {
-          setProviderObj(null);
-          return;
-        }
+    let data = dictionary;
+    if (!data) return setProviderObj(null);
+    let found = null;
+    if (country === "CN") {
+      if (province && city && provider && data?.CN?.provinces?.[province]?.cities?.[city]?.providers?.[provider]) {
+        found = data.CN.provinces[province].cities[city].providers[provider];
+      } else if (province && provider && data?.CN?.provinces?.[province]?.providers?.[provider]) {
+        found = data.CN.provinces[province].providers[provider];
       }
-      let found = null;
-      if (country === "CN") {
-        if (
-          province &&
-          city &&
-          provider &&
-          data?.CN?.provinces?.[province]?.cities?.[city]?.providers?.[provider]
-        ) {
-          found = data.CN.provinces[province].cities[city].providers[provider];
-        } else if (
-          province &&
-          provider &&
-          data?.CN?.provinces?.[province]?.providers?.[provider]
-        ) {
-          found = data.CN.provinces[province].providers[provider];
-        }
-      } else if (country && provider && data?.[country]?.cities) {
-        if (
-          city &&
-          data[country].cities[city]?.providers?.[provider]
-        ) {
-          found = data[country].cities[city].providers[provider];
-        }
+    } else if (country && provider && data?.[country]?.cities) {
+      if (city && data[country].cities[city]?.providers?.[provider]) {
+        found = data[country].cities[city].providers[provider];
       }
-      setProviderObj(found);
-    };
-    fetchProvider();
+    }
+    setProviderObj(found);
     // eslint-disable-next-line
   }, [country, province, city, provider, dictionary]);
 
-  // ---- AUTO-RESET OR AUTO-SELECT PROTOCOL WHEN PROVIDER CHANGES ----
+  // Reset or auto-select protocol when provider changes
   useEffect(() => {
     if (!providerObj) {
       setProtocol("");
@@ -118,76 +92,41 @@ const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
     }
   }, [providerObj]);
 
-  // Helper: get cities for country from dictionary (US-style and CN-style)
-  function getCitiesForCountry(code: string): City[] {
-    if (!dictionary) return [];
-    const countryObj = dictionary[code];
-    if (!countryObj) return [];
-    if (countryObj.cities) {
-      // US/other: direct cities
-      return Object.values(countryObj.cities)
-        .map((c: any) => c.loc ? { name: c.name, lat: c.loc.lat, lon: c.loc.lon } : null)
-        .filter(Boolean) as City[];
-    }
-    if (countryObj.provinces) {
-      // CN: cities nested under provinces
-      return Object.values(countryObj.provinces).flatMap((prov: any) =>
-        prov.cities
-          ? Object.values(prov.cities)
-            .map((c: any) => c.loc ? { name: c.name, lat: c.loc.lat, lon: c.loc.lon } : null)
-            .filter(Boolean)
-          : []
-      ) as City[];
-    }
-    return [];
-  }
-
-  // Update parent for country and city selection for map display
+  // Inform parent of selections
   useEffect(() => {
     if (setSelectedCountry) setSelectedCountry(country);
-    if (setSelectedCities) {
-      if (country && dictionary) {
-        setSelectedCities(getCitiesForCountry(country));
-      } else {
-        setSelectedCities([]);
-      }
-    }
+    if (setSelectedProvince) setSelectedProvince(province);
+    if (setSelectedCity) setSelectedCity(city);
     // eslint-disable-next-line
-  }, [country, dictionary]);
+  }, [country, province, city]);
 
-  // Handlers for generator selects
+  // Handlers
   const handleCountryChange = (val: string) => {
     setCountry(val);
     setProvince("");
     setCity("");
     setProvider("");
-    setProtocol(""); // Reset protocol too!
+    setProtocol("");
     if (setSelectedCountry) setSelectedCountry(val);
-    if (setSelectedCities) {
-      if (val && dictionary) {
-        setSelectedCities(getCitiesForCountry(val));
-      } else {
-        setSelectedCities([]);
-      }
-    }
+    if (setSelectedProvince) setSelectedProvince(""); // Reset province in parent
+    if (setSelectedCity) setSelectedCity(""); // Reset city in parent
   };
   const handleProvinceChange = (val: string) => {
     setProvince(val);
     setCity("");
     setProvider("");
-    setProtocol(""); // Reset protocol too!
+    setProtocol("");
+    if (setSelectedProvince) setSelectedProvince(val);
+    if (setSelectedCity) setSelectedCity(""); // Reset city in parent
   };
   const handleCityChange = (val: string) => {
     setCity(val);
     setProvider("");
-    setProtocol(""); // Reset protocol too!
+    setProtocol("");
+    if (setSelectedCity) setSelectedCity(val);
   };
-  const handleProviderChange = (val: string) => {
-    setProvider(val);
-  };
-  const handleProtocolChange = (val: Protocol) => {
-    setProtocol(val);
-  };
+  const handleProviderChange = (val: string) => setProvider(val);
+  const handleProtocolChange = (val: Protocol) => setProtocol(val);
 
   // Generate URL and validate domain
   const handleGenerate = async () => {
@@ -229,7 +168,8 @@ const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
     setDomainChecking(false);
     setInputValue("");
     if (setSelectedCountry) setSelectedCountry("");
-    if (setSelectedCities) setSelectedCities([]);
+    if (setSelectedProvince) setSelectedProvince("");
+    if (setSelectedCity) setSelectedCity("");
   };
 
   const showProvince = country === "CN";

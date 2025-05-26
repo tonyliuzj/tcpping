@@ -1,45 +1,11 @@
 import React, { useState, useEffect } from "react";
-import dynamic from "next/dynamic";
+import Navbar from "../components/Navbar";
 import GeneratorPanel from "../components/GeneratorPanel";
+import MapPanel from "../components/MapPanel";
 import { IPInfo } from "../components/IPInfo";
 import { DNSInfo } from "../components/DNSInfo";
-import Navbar from "../components/Navbar"; // Import the Navbar
-
-// Dynamically import WorldMap, client-only
-const WorldMap = dynamic(() => import("../components/WorldMap"), { ssr: false });
-
-// Simple hook for screen size
-function useIsMobile(breakpoint = 768) {
-  const [isMobile, setIsMobile] = useState(false);
-  useEffect(() => {
-    const check = () => setIsMobile(window.innerWidth < breakpoint);
-    check();
-    window.addEventListener("resize", check);
-    return () => window.removeEventListener("resize", check);
-  }, [breakpoint]);
-  return isMobile;
-}
-
-// Utilities
-function cleanHostname(input: string): string {
-  let value = input.trim();
-  value = value.replace(/^https?:\/\//i, "");
-  value = value.replace(/\/.*$/, "");
-  value = value.replace(/:.*$/, "");
-  return value;
-}
-function isIPv4(ip: string) {
-  return /^(\d{1,3}\.){3}\d{1,3}$/.test(ip.trim());
-}
-function isIPv6(ip: string) {
-  return /^([a-fA-F0-9:]+:+)+[a-fA-F0-9]+$/.test(ip.trim());
-}
-function isHostname(str: string) {
-  return (
-    /^(([a-zA-Z0-9-]{1,63}\.)+[a-zA-Z]{2,63})$/.test(str) ||
-    /^([a-zA-Z0-9-]{1,63})$/.test(str)
-  );
-}
+import { useIsMobile } from "../hooks/useIsMobile";
+import { cleanHostname, isIPv4, isIPv6, isHostname } from "../utils/validation";
 
 export default function Home() {
   const isMobile = useIsMobile();
@@ -54,10 +20,11 @@ export default function Home() {
   const [domainChecking, setDomainChecking] = useState(false);
   const [copied, setCopied] = useState<boolean>(false);
 
-  // Map data states
+  // Map selection states
   const [dictionary, setDictionary] = useState<any>(null);
   const [selectedCountry, setSelectedCountry] = useState<string>("");
-  const [selectedCities, setSelectedCities] = useState<{ name: string, lat: number, lon: number }[]>([]);
+  const [selectedProvince, setSelectedProvince] = useState<string>("");
+  const [selectedCity, setSelectedCity] = useState<string>("");
 
   // Fetch the dictionary.json from API on mount
   useEffect(() => {
@@ -72,7 +39,7 @@ export default function Home() {
     })();
   }, []);
 
-  // Recognize the type of input on every input change, but DO NOT fetch
+  // Recognize input type (hostname, IPv4, IPv6, etc)
   useEffect(() => {
     setIpInfoResults(null);
     setDnsInfoResults(null);
@@ -111,40 +78,9 @@ export default function Home() {
     }
   };
 
-  // --- Map logic ---
-  let mapMode: "default" | "country" | "lookup" = "default";
-  let countryObj: any = null;
-  let ipLocations: any[] = [];
-
-  if (lookupType === "ipv4" || lookupType === "ipv6") {
-    if (ipInfoResults) {
-      mapMode = "lookup";
-      ipLocations = ipInfoResults
-        .flatMap(r => (r.ok && r.latitude && r.longitude) ? [{
-          ip: r.ip,
-          label: `${r.provider}: ${r.ip}`,
-          lat: r.latitude,
-          lon: r.longitude
-        }] : []);
-    }
-  } else if (selectedCountry && dictionary) {
-    mapMode = "country";
-    if (dictionary[selectedCountry]?.loc) {
-      countryObj = {
-        name: dictionary[selectedCountry].name,
-        code: selectedCountry,
-        lat: dictionary[selectedCountry].loc.lat,
-        lon: dictionary[selectedCountry].loc.lon
-      };
-    }
-  }
-
   return (
     <>
-      {/* Navbar always at top */}
       <Navbar />
-
-      {/* Offset for navbar height */}
       <div className="h-16 w-full" />
 
       <div className="min-h-screen w-full flex flex-col items-center justify-center bg-gray-100 px-1 sm:px-4">
@@ -161,39 +97,28 @@ export default function Home() {
           }}
         >
           {/* MAP LEFT */}
-          {!isMobile && (
-            <div
-              className="flex-1 min-w-[360px] max-w-[100vw] mr-0 md:mr-8 sticky top-26 self-start"
-              style={{
-                height: "100vh - 64px",
-                maxHeight: "100vh - 64px",
-              }}
-            >
-              <WorldMap
-                mode={mapMode}
-                countryData={countryObj}
-                cities={selectedCities}
-                ipLocations={ipLocations}
-              />
-            </div>
-          )}
+          <MapPanel
+            dictionary={dictionary}
+            lookupType={lookupType}
+            ipInfoResults={ipInfoResults}
+            selectedCountry={selectedCountry}
+            selectedProvince={selectedProvince}
+            selectedCity={selectedCity}
+            isMobile={isMobile}
+          />
 
-          {/* EXISTING PANEL RIGHT */}
+          {/* RIGHT PANEL */}
           <div className="flex-1 flex flex-col space-y-4" style={{ minWidth: 0 }}>
             <h1 className="text-2xl sm:text-3xl font-bold text-center mt-4 mb-2 sm:mb-4">TCPing Host Generator & Lookup</h1>
             {/* Generator controls */}
-            <div
-              className={`
-                w-full flex flex-wrap gap-2
-              `}
-              style={{ minWidth: 0 }}
-            >
+            <div className="w-full flex flex-wrap gap-2" style={{ minWidth: 0 }}>
               <GeneratorPanel
                 setInputValue={setInputValue}
                 setDomainStatus={setDomainStatus}
                 setDomainChecking={setDomainChecking}
                 setSelectedCountry={setSelectedCountry}
-                setSelectedCities={setSelectedCities}
+                setSelectedProvince={setSelectedProvince}
+                setSelectedCity={setSelectedCity}
                 dictionary={dictionary}
               />
             </div>
