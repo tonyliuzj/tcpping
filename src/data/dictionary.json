@@ -11,29 +11,10 @@
           "cu": { "name": "China Unicom", "v4": true, "v6": true },
           "cm": { "name": "China Mobile", "v4": false, "v6": true }
         },
-        "cities": {
-          "aaaa": {
-            "name": "Alpha City",
-            "loc": { "lat": 39.5, "lon": 116.4 },
-            "providers": {
-              "ct": { "name": "China Telecom", "v4": true, "v6": false },
-              "cu": { "name": "China Unicom", "v4": true, "v6": true },
-              "cm": { "name": "China Mobile", "v4": false, "v6": true }
-            }
-          },
-          "bbbb": {
-            "name": "Beta City",
-            "loc": { "lat": 39.7, "lon": 116.3 },
-            "providers": {
-              "ct": { "name": "China Telecom", "v4": true, "v6": false },
-              "cu": { "name": "China Unicom", "v4": true, "v6": true },
-              "cm": { "name": "China Mobile", "v4": false, "v6": true }
-            }
-          }
-        }
+        "cities": {}
       },
       "yy": {
-        "name": "Yunnan Province",
+        "name": "Test",
         "loc": { "lat": 25.0453, "lon": 102.7097 },
         "providers": {
           "ct": { "name": "China Telecom", "v4": true, "v6": false },
@@ -42,7 +23,7 @@
         },
         "cities": {
           "cccc": {
-            "name": "Capital City",
+            "name": "Test",
             "loc": { "lat": 25.05, "lon": 102.7 },
             "providers": {
               "ct": { "name": "China Telecom", "v4": true, "v6": false },
@@ -50,28 +31,6 @@
               "cm": { "name": "China Mobile", "v4": false, "v6": true }
             }
           }
-        }
-      }
-    }
-  },
-  "US": {
-    "name": "United States",
-    "loc": { "lat": 37.09, "lon": -95.71 },
-    "cities": {
-      "nyc": {
-        "name": "New York City",
-        "loc": { "lat": 40.7128, "lon": -74.006 },
-        "providers": {
-          "vz": { "name": "Verizon", "v4": true, "v6": false },
-          "att": { "name": "AT&T", "v4": true, "v6": true }
-        }
-      },
-      "sf": {
-        "name": "San Francisco",
-        "loc": { "lat": 37.7749, "lon": -122.4194 },
-        "providers": {
-          "att": { "name": "AT&T", "v4": true, "v6": true },
-          "tm": { "name": "T-Mobile", "v4": false, "v6": true }
         }
       }
     }
