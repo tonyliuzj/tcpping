@@ -8,6 +8,19 @@ import {
 } from "react-simple-maps";
 
 import geoUrl from "../data/world-topo.json";
+import chinaTopo from "../data/china-topo.json";
+
+type MapFeatureProperties = {
+  name?: string;
+  fullname?: string;
+  code?: string;
+  level?: number;
+};
+
+type MapFeature = {
+  rsmKey: string;
+  properties?: MapFeatureProperties;
+};
 
 export interface WorldMapProps {
   mode: "default" | "country" | "province" | "city" | "lookup";
@@ -16,6 +29,7 @@ export interface WorldMapProps {
   center?: [number, number]; // [lat, lon]
   zoom?: number; // Leaflet scale usually
   activeCountry?: string;
+  activeProvince?: string;
 }
 
 // Convert Leaflet Zoom to react-simple-maps zoom
@@ -37,9 +51,15 @@ const SvgWorldMap: React.FC<WorldMapProps> = ({
   center = [20, 0],
   zoom = 2,
   activeCountry,
+  activeProvince,
 }) => {
   const [tooltipContent, setTooltipContent] = useState("");
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+  const isChinaView = activeCountry === "CN" && mode !== "lookup";
+  const geographySource = isChinaView ? chinaTopo : geoUrl;
+  const projectionConfig = isChinaView
+    ? { scale: 650, center: [104, 35] }
+    : { scale: 100 };
   // Combine markers
   const markers = useMemo(() => {
     const list: Array<{ lat: number; lon: number; name: string; type: 'city' | 'ip' }> = [];
@@ -72,44 +92,69 @@ const SvgWorldMap: React.FC<WorldMapProps> = ({
       className="w-full h-[500px] bg-[#1a1a1a] rounded-2xl overflow-hidden relative border border-gray-800 shadow-xl"
       onMouseMove={tooltipContent ? handleMouseMove : undefined}
     >
-      <ComposableMap projection="geoMercator" projectionConfig={{ scale: 100 }} className="w-full h-full">
+      <ComposableMap projection="geoMercator" projectionConfig={projectionConfig} className="w-full h-full">
         <ZoomableGroup 
           center={rsmCenter} 
           zoom={rsmZoom}
           minZoom={1}
           maxZoom={100}
         >
-          <Geographies geography={geoUrl}>
-            {({ geographies }: { geographies: any[] }) =>
-              geographies.map((geo: any) => {
-                const countryName = geo.properties.name;
+          <Geographies geography={geographySource}>
+            {({ geographies }: { geographies: MapFeature[] }) =>
+              geographies
+                .filter((geo) => {
+                  if (!isChinaView) return true;
+                  // Keep only province-level polygons to avoid oversized country outline/inset artifacts.
+                  return geo.properties?.level === 1;
+                })
+                .map((geo) => {
+                const countryName = geo.properties?.name;
                 const isChina =
-                  countryName === "China" || countryName === "Taiwan";
-                const displayName = countryName === "Taiwan" ? "China" : countryName;
-                
+                  !isChinaView &&
+                  (countryName === "China" || countryName === "Taiwan");
+                const displayName = isChinaView
+                  ? geo.properties?.fullname || geo.properties?.name
+                  : countryName === "Taiwan"
+                    ? "China"
+                    : countryName;
+                const isActiveProvince =
+                  isChinaView &&
+                  activeProvince &&
+                  geo.properties?.code === activeProvince;
+                const defaultFill = isChinaView
+                  ? isActiveProvince
+                    ? "#1f6feb"
+                    : "#2f4b63"
+                  : isChina
+                    ? "#32465a"
+                    : "#2b3543";
+                const hoverFill = isChinaView ? "#3b5f7c" : "#3c5369";
+                const stroke = isChinaView ? "#6b7280" : "#1f2a37";
+                const strokeWidth = isChinaView ? 0.8 : 0.6;
+              
                 return (
                   <Geography
                     key={geo.rsmKey}
                     geography={geo}
-                    onMouseEnter={(e: any) => handleMouseEnter(displayName, e)}
+                    onMouseEnter={(e) => displayName && handleMouseEnter(displayName, e)}
                     onMouseLeave={handleMouseLeave}
                     style={{
                       default: {
-                        fill: isChina ? "#32465a" : "#2b3543",
-                        stroke: "#1f2a37",
-                        strokeWidth: 0.6,
+                        fill: defaultFill,
+                        stroke,
+                        strokeWidth,
                         outline: "none",
                       },
                       hover: {
-                        fill: "#3c5369",
+                        fill: hoverFill,
                         stroke: "#4b5563",
-                        strokeWidth: 0.8,
+                        strokeWidth: strokeWidth + 0.2,
                         outline: "none",
                         cursor: "pointer",
                       },
                       pressed: {
-                        fill: "#32465a",
-                        stroke: "#1f2a37",
+                        fill: defaultFill,
+                        stroke,
                         outline: "none",
                       },
                     }}

@@ -49,32 +49,7 @@ const MapPanel: React.FC<MapPanelProps> = ({
       mapZoom = 8;
     }
   }
-  // 2. Province in China selected: show all cities in that province
-  else if (
-    selectedCountry === "CN" &&
-    selectedProvince &&
-    dictionary?.CN?.provinces?.[selectedProvince]
-  ) {
-    const provData = dictionary.CN.provinces[selectedProvince];
-    focusObj = {
-      name: provData.name,
-      code: selectedProvince,
-      lat: provData.loc.lat,
-      lon: provData.loc.lon,
-    };
-    mapMode = "province";
-    mapCenter = [focusObj.lat, focusObj.lon];
-    mapZoom = 8;
-    if (provData.cities) {
-      markerPoints = Object.entries(provData.cities).map(([cityCode, c]) => ({
-        name: c.name,
-        code: cityCode,
-        lat: c.loc.lat,
-        lon: c.loc.lon,
-      }));
-    }
-  }
-  // 3. City selected (any country): show only that city
+  // 2. City selected (any country): show only that city
   else if (
     selectedCountry &&
     selectedCity &&
@@ -101,6 +76,31 @@ const MapPanel: React.FC<MapPanelProps> = ({
       mapCenter = [focusObj.lat, focusObj.lon];
       mapZoom = 10;
       markerPoints = [focusObj];
+    }
+  }
+  // 3. Province in China selected: show all cities in that province
+  else if (
+    selectedCountry === "CN" &&
+    selectedProvince &&
+    dictionary?.CN?.provinces?.[selectedProvince]
+  ) {
+    const provData = dictionary.CN.provinces[selectedProvince];
+    focusObj = {
+      name: provData.name,
+      code: selectedProvince,
+      lat: provData.loc.lat,
+      lon: provData.loc.lon,
+    };
+    mapMode = "province";
+    mapCenter = [focusObj.lat, focusObj.lon];
+    mapZoom = 8;
+    if (provData.cities) {
+      markerPoints = Object.entries(provData.cities).map(([cityCode, c]) => ({
+        name: c.name,
+        code: cityCode,
+        lat: c.loc.lat,
+        lon: c.loc.lon,
+      }));
     }
   }
   // 4. China selected: show pointers for all its provinces
@@ -161,14 +161,15 @@ const MapPanel: React.FC<MapPanelProps> = ({
     >
       <WorldMap
         mode={mapMode}
-        cities={markerPoints}
-        ipLocations={ipLocations}
-        center={mapCenter}
-        zoom={mapZoom}
-        activeCountry={selectedCountry}
-      />
-    </div>
-  );
+      cities={markerPoints}
+      ipLocations={ipLocations}
+      center={mapCenter}
+      zoom={mapZoom}
+      activeCountry={selectedCountry}
+      activeProvince={selectedProvince}
+    />
+  </div>
+);
 };
 
 export default MapPanel;
