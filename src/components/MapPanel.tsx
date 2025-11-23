@@ -1,6 +1,6 @@
 import React from "react";
 import dynamic from "next/dynamic";
-const WorldMap = dynamic(() => import("./WorldMap"), { ssr: false });
+const WorldMap = dynamic(() => import("./SvgWorldMap"), { ssr: false });
 import { 
   DictionaryType, 
   IpInfoResult 
