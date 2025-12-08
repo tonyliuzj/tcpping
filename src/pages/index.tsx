@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import Navbar from "../components/Navbar";
 import GeneratorPanel from "../components/GeneratorPanel";
-import MapPanel from "../components/MapPanel";
+import CustomMap from "../components/CustomMap";
 import { IPInfo } from "../components/IPInfo";
 import { DNSInfo } from "../components/DNSInfo";
 import { useIsMobile } from "../hooks/useIsMobile";
@@ -22,7 +22,7 @@ export default function Home() {
   const [domainChecking, setDomainChecking] = useState(false);
   const [copied, setCopied] = useState<boolean>(false);
 
-  // Map selection states
+  // Generator selection states
   const [dictionary, setDictionary] = useState<DictionaryType | undefined>(undefined);
   const [selectedCountry, setSelectedCountry] = useState<string>("");
   const [selectedProvince, setSelectedProvince] = useState<string>("");
@@ -56,6 +56,32 @@ export default function Home() {
     return setLookupType("invalid");
   }, [inputValue]);
 
+  // Get city location for map marker
+  const cityLocation = useMemo(() => {
+    if (!selectedCity || !dictionary) return undefined;
+
+    if (selectedCountry === "CN" && selectedProvince) {
+      const cityData = dictionary.CN?.provinces?.[selectedProvince]?.cities?.[selectedCity];
+      if (cityData) {
+        return {
+          lat: cityData.loc.lat,
+          lon: cityData.loc.lon,
+          name: cityData.name
+        };
+      }
+    } else if (selectedCountry && selectedCountry !== "CN") {
+      const cityData = dictionary[selectedCountry]?.cities?.[selectedCity];
+      if (cityData) {
+        return {
+          lat: cityData.loc.lat,
+          lon: cityData.loc.lon,
+          name: cityData.name
+        };
+      }
+    }
+    return undefined;
+  }, [selectedCountry, selectedProvince, selectedCity, dictionary]);
+
   // --- Lookup handler ---
   const handleFetchInfo = async () => {
     setFetching(true);
@@ -88,30 +114,26 @@ export default function Home() {
       <div className="min-h-screen w-full flex flex-col items-center justify-center bg-gray-100 px-1 sm:px-4">
         <div
           className={`
-            w-full max-w-full
+            w-full max-w-4xl
             bg-white shadow-lg rounded-2xl
-            flex flex-col md:flex-row
             ${isMobile ? "p-2" : "p-8"}
           `}
-          style={{
-            minHeight: "100vh",
-            maxWidth: "none"
-          }}
         >
-          {/* MAP LEFT */}
-          <MapPanel
-            dictionary={dictionary}
-            lookupType={lookupType}
-            ipInfoResults={ipInfoResults}
-            selectedCountry={selectedCountry}
-            selectedProvince={selectedProvince}
-            selectedCity={selectedCity}
-            isMobile={isMobile}
-          />
-
-          {/* RIGHT PANEL */}
-          <div className="flex-1 flex flex-col space-y-4" style={{ minWidth: 0 }}>
+          <div className="flex flex-col space-y-4">
             <h1 className="text-2xl sm:text-3xl font-bold text-center mt-4 mb-2 sm:mb-4">TCPing Host Generator & Lookup</h1>
+
+            {/* Map Display */}
+            {selectedCountry && (
+              <div className="w-full relative">
+                <CustomMap
+                  selectedCountry={selectedCountry}
+                  selectedProvince={selectedProvince}
+                  selectedCity={selectedCity}
+                  cityLocation={cityLocation}
+                />
+              </div>
+            )}
+
             {/* Generator controls */}
             <div className="w-full flex flex-wrap gap-2" style={{ minWidth: 0 }}>
               <GeneratorPanel
